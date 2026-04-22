@@ -5,7 +5,7 @@ import creational.builder.*;
 import creational.prototype.*;
 import creational.object_pool.*;
 
-public class Main {
+public class CreationalMain {
     public static void main(String[] args) {
 
         // Singleton
