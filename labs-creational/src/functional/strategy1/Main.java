@@ -1,23 +1,27 @@
 package functional.strategy1;
 
+import java.util.function.BinaryOperator;
+
 public class Main {
 
     public static void main(String[] args) {
 
-        // Стратегія A
-        Runnable strategyA =
-                () -> System.out.println("Strategy A");
+        BinaryOperator<Integer> addition =
+                (a, b) -> a + b;
 
-        // Стратегія B
-        Runnable strategyB =
-                () -> System.out.println("Strategy B");
+        BinaryOperator<Integer> multiplication =
+                (a, b) -> a * b;
 
-        // Контекст
-        executeStrategy(strategyA);
-        executeStrategy(strategyB);
+        executeStrategy(10, 5, addition);
+        executeStrategy(10, 5, multiplication);
     }
 
-    public static void executeStrategy(Runnable strategy) {
-        strategy.run();
+    public static void executeStrategy(
+            int a,
+            int b,
+            BinaryOperator<Integer> strategy
+    ) {
+        int result = strategy.apply(a, b);
+        System.out.println("Result: " + result);
     }
 }

@@ -1,0 +1,23 @@
+# Compiled Java files
+*.class
+
+# Maven build folder
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Gradle, якщо раптом буде
+.gradle/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Out folder
+out/
