@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +33,7 @@ public class RxJavaLab7 {
     record Product(String name, double priceUsd) {
     }
 
-    record FoodOrder(String orderId, List<String> items) {
+    record BookOrder(String orderId, List<String> items) {
     }
 
     record ServiceCall(String serviceName, int delayMs) {
@@ -155,32 +156,32 @@ public class RxJavaLab7 {
 
     // 2.2. Холодний та гарячий Observable
     private static void task2_2_ColdVsHotObservable() throws InterruptedException {
-        List<String> results = Arrays.asList(
-                "Динамо 2:1 Шахтар",
-                "Шахтар 3:0 Металіст",
-                "Дніпро 1:1 Зоря",
-                "Карпати 0:2 Рух",
-                "Полісся 3:2 Верес"
+        List<String> deliveryUpdates = Arrays.asList(
+                "Замовлення створено",
+                "Посилку передано на склад",
+                "Посилка вирушила до міста отримувача",
+                "Посилка прибула у відділення",
+                "Посилка готова до видачі"
         );
 
-        Observable<String> cold = Observable.fromIterable(results);
+        Observable<String> cold = Observable.fromIterable(deliveryUpdates);
 
-        cold.subscribe(match -> System.out.println("Підписник 1: " + match));
-        cold.subscribe(match -> System.out.println("Підписник 2: " + match));
+        cold.subscribe(update -> System.out.println("Користувач 1 бачить історію: " + update));
+        cold.subscribe(update -> System.out.println("Користувач 2 бачить історію: " + update));
 
         ConnectableObservable<String> hot = Observable
                 .interval(1, TimeUnit.SECONDS)
-                .take(results.size())
-                .map(index -> results.get(index.intValue()))
+                .take(deliveryUpdates.size())
+                .map(index -> deliveryUpdates.get(index.intValue()))
                 .publish();
 
-        hot.subscribe(match -> System.out.println("Гарячий підписник 1: " + match));
+        hot.subscribe(update -> System.out.println("Онлайн-підписник 1: " + update));
 
         hot.connect();
 
         Thread.sleep(2_000);
 
-        hot.subscribe(match -> System.out.println("Гарячий підписник 2: " + match));
+        hot.subscribe(update -> System.out.println("Онлайн-підписник 2: " + update));
 
         Thread.sleep(5_000);
     }
@@ -202,6 +203,7 @@ public class RxJavaLab7 {
         Observable.fromIterable(products)
                 .filter(product -> product.priceUsd() > 100)
                 .map(product -> String.format(
+                        Locale.US,
                         "%s -- %.2f грн (є в наявності)",
                         product.name(),
                         product.priceUsd() * rate
@@ -211,10 +213,10 @@ public class RxJavaLab7 {
 
     // 3.2. flatMap() та concatMap()
     private static void task3_2_FlatMapAndConcatMap() throws InterruptedException {
-        List<FoodOrder> orders = Arrays.asList(
-                new FoodOrder("ZAM-01", Arrays.asList("Піца Маргарита", "Кола 0.5л")),
-                new FoodOrder("ZAM-02", Arrays.asList("Борщ", "Вареники", "Компот")),
-                new FoodOrder("ZAM-03", Arrays.asList("Суші-сет 20шт", "Місо-суп"))
+        List<BookOrder> orders = Arrays.asList(
+                new BookOrder("ORD-01", Arrays.asList("Java для початківців", "Чистий код")),
+                new BookOrder("ORD-02", Arrays.asList("Алгоритми", "Патерни проєктування", "Git на практиці")),
+                new BookOrder("ORD-03", Arrays.asList("Бази даних", "Spring Boot"))
         );
 
         Observable.fromIterable(orders)
@@ -355,19 +357,21 @@ public class RxJavaLab7 {
     private static void task5_1_Schedulers() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
 
-        Observable<String> images = Observable.just(
-                "photo_1.jpg", "photo_2.jpg", "photo_3.jpg"
+        Observable<String> files = Observable.just(
+                "report.pdf",
+                "contract.docx",
+                "presentation.pptx"
         );
 
-        images
-                .flatMap(image -> downloadImage(image)
+        files
+                .flatMap(file -> downloadFile(file)
                         .subscribeOn(Schedulers.io())
                         .toObservable())
                 .observeOn(Schedulers.computation())
-                .map(RxJavaLab7::compressImage)
+                .map(RxJavaLab7::compressFile)
                 .observeOn(Schedulers.trampoline())
                 .subscribe(
-                        RxJavaLab7::displayImage,
+                        RxJavaLab7::displayFile,
                         error -> System.out.println(error.getMessage()),
                         latch::countDown
                 );
@@ -375,30 +379,30 @@ public class RxJavaLab7 {
         latch.await();
     }
 
-    private static Single<String> downloadImage(String imageName) {
+    private static Single<String> downloadFile(String fileName) {
         return Single.fromCallable(() -> {
             Thread.sleep(1_000);
-            System.out.println("[" + Thread.currentThread().getName() + "] [ЗАВАНТ] Завантаження: " + imageName);
-            return imageName;
+            System.out.println("[" + Thread.currentThread().getName() + "] [ЗАВАНТ] Завантаження файлу: " + fileName);
+            return fileName;
         });
     }
 
-    private static String compressImage(String imageName) throws InterruptedException {
+    private static String compressFile(String fileName) throws InterruptedException {
         Thread.sleep(500);
-        System.out.println("[" + Thread.currentThread().getName() + "] [СТИСК] Стиснення: " + imageName);
-        return imageName;
+        System.out.println("[" + Thread.currentThread().getName() + "] [ОБРОБКА] Стиснення файлу: " + fileName);
+        return fileName;
     }
 
-    private static void displayImage(String imageName) {
-        System.out.println("[" + Thread.currentThread().getName() + "] [ФОТО] Відображення: " + imageName);
+    private static void displayFile(String fileName) {
+        System.out.println("[" + Thread.currentThread().getName() + "] [ГОТОВО] Файл готовий: " + fileName);
     }
 
     // 5.2. Послідовна та паралельна обробка
     private static void task5_2_ParallelProcessing() throws InterruptedException {
         List<ServiceCall> services = Arrays.asList(
-                new ServiceCall("UserService", 800),
-                new ServiceCall("OrderService", 1200),
-                new ServiceCall("RecommendationService", 600)
+                new ServiceCall("ProfileService", 800),
+                new ServiceCall("PaymentService", 1200),
+                new ServiceCall("NotificationService", 600)
         );
 
         long sequentialStart = System.currentTimeMillis();
